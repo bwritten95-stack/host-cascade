@@ -4,10 +4,11 @@ extends CharacterBody2D
 
 enum Mode { WORM, HOST, LEAPING }
 
-const WORM_SPEED := 280.0
-const LEAP_SPEED := 920.0
-const LEAP_DURATION := 0.18
-const POSSESS_RANGE := 42.0
+const WORM_SPEED := 300.0
+const LEAP_SPEED := 980.0
+const LEAP_DURATION := 0.2
+const POSSESS_RANGE := 52.0
+const MAGNET_RANGE := 110.0
 
 @onready var _visual: Polygon2D = $Visual
 @onready var _glow: Polygon2D = $Glow
@@ -103,12 +104,47 @@ func _process_leap(delta: float) -> void:
 
 func _start_leap() -> void:
 	var dir := _aim_dir()
+	# Magnet: if a host is near aim cone, snap leap toward it (addictive forgiveness)
+	var magnet := _magnet_host(dir)
+	if magnet:
+		dir = (magnet.global_position - global_position).normalized()
 	_leap_dir = dir
 	_leap_t = LEAP_DURATION
 	mode = Mode.LEAPING
 	EventBus.leap_started.emit(global_position, dir)
 	AudioService.play_leap()
 	EventBus.camera_shake.emit(3.0, 0.06)
+	_spawn_leap_streak()
+
+func _magnet_host(aim: Vector2) -> Node2D:
+	var best: Node2D = null
+	var best_score := 0.55 # min dot
+	for n in get_tree().get_nodes_in_group("host"):
+		if not is_instance_valid(n) or not (n is Node2D):
+			continue
+		if n.get("possessed") == true or n.get("alive") == false:
+			continue
+		var to: Vector2 = (n as Node2D).global_position - global_position
+		var dist := to.length()
+		if dist > MAGNET_RANGE or dist < 1.0:
+			continue
+		var dot := aim.dot(to.normalized())
+		if dot > best_score:
+			best_score = dot
+			best = n as Node2D
+	return best
+
+func _spawn_leap_streak() -> void:
+	var streak := Polygon2D.new()
+	streak.polygon = PackedVector2Array([Vector2(-4, -10), Vector2(4, -10), Vector2(2, 14), Vector2(-2, 14)])
+	streak.color = Color(0.5, 1.0, 0.75, 0.7)
+	streak.global_position = global_position
+	streak.rotation = _leap_dir.angle() + PI * 0.5
+	get_parent().add_child(streak)
+	var tw := streak.create_tween()
+	tw.tween_property(streak, "modulate:a", 0.0, 0.2)
+	tw.parallel().tween_property(streak, "scale", Vector2(1.4, 1.8), 0.2)
+	tw.tween_callback(streak.queue_free)
 
 func _aim_dir() -> Vector2:
 	var mouse := get_global_mouse_position()
@@ -262,6 +298,8 @@ func _shockwave(pos: Vector2, dmg: int) -> void:
 func take_damage(amount: int) -> void:
 	if not _alive or mode == Mode.LEAPING:
 		return
+	if "--ship-test" in OS.get_cmdline_user_args():
+		return
 	if mode == Mode.WORM:
 		_die()
 		return
@@ -278,6 +316,13 @@ func take_damage(amount: int) -> void:
 
 func _die() -> void:
 	if not _alive:
+		return
+	if "--ship-test" in OS.get_cmdline_user_args():
+		# Soft reset worm instead of ending the run during CI verification
+		RunState.worm_time = 0.0
+		_alive = true
+		visible = true
+		_enter_worm(true)
 		return
 	_alive = false
 	EventBus.player_died.emit()

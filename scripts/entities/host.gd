@@ -16,6 +16,13 @@ func setup(host_id: String) -> void:
 	def = HostCatalog.make(host_id)
 	hp = def.max_hp
 	_apply_visual()
+	if def.id == "apex":
+		scale = Vector2(1.8, 1.8)
+		# Intro pulse
+		modulate.a = 0.0
+		var tw := create_tween()
+		tw.tween_property(self, "modulate:a", 1.0, 0.4)
+		EventBus.camera_shake.emit(8.0, 0.2)
 
 func _ready() -> void:
 	add_to_group("host")
@@ -39,6 +46,16 @@ func _apply_visual() -> void:
 	var cs := $CollisionShape2D
 	if cs.shape is CircleShape2D:
 		(cs.shape as CircleShape2D).radius = r * 0.65
+	# Tier pip ring for readability
+	if def.tier >= 3:
+		var ring := Polygon2D.new()
+		var pts := PackedVector2Array()
+		for a in 16:
+			pts.append(Vector2.from_angle(TAU * float(a) / 16.0) * (r + 6.0))
+		ring.polygon = pts
+		ring.color = Color(1, 1, 1, 0.18)
+		ring.z_index = -1
+		add_child(ring)
 
 func _physics_process(delta: float) -> void:
 	if not alive or possessed or not RunState.run_active:

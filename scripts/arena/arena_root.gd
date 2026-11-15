@@ -34,9 +34,11 @@ func _ready() -> void:
 	p.global_position = Vector2(640, 400)
 	_entities.add_child(p)
 	_director.start()
-	if "--autoplay" in OS.get_cmdline_user_args():
-		var bot: Node = preload("res://scripts/systems/autoplay_driver.gd").new()
-		add_child(bot)
+	var args := OS.get_cmdline_user_args()
+	if "--ship-test" in args:
+		add_child(preload("res://scripts/systems/ship_test_driver.gd").new())
+	elif "--autoplay" in args:
+		add_child(preload("res://scripts/systems/autoplay_driver.gd").new())
 
 func _process(delta: float) -> void:
 	if Input.is_action_just_pressed("pause") and RunState.run_active and not _ended:
@@ -107,6 +109,8 @@ func greed_apex() -> void:
 
 func _on_dead() -> void:
 	if _ended:
+		return
+	if "--ship-test" in OS.get_cmdline_user_args():
 		return
 	_ended = true
 	RunState.mark("lost")

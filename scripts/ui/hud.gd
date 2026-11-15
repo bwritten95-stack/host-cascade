@@ -17,6 +17,9 @@ func _ready() -> void:
 	_hint.text = "WASD move · Mouse aim · Click/J attack · Space leap/possess · F/E eject · Esc pause"
 	_worm.visible = false
 	_banner.modulate.a = 0.0
+	# First-seconds addiction tip
+	await get_tree().create_timer(0.35).timeout
+	_flash_banner("LEAP INTO A BODY")
 
 func _process(_d: float) -> void:
 	var p := get_tree().get_first_node_in_group("player")

@@ -27,9 +27,13 @@ func _ready() -> void:
 	_menu.pressed.connect(func() -> void:
 		get_tree().change_scene_to_file("res://scenes/ui/main_menu.tscn")
 	)
-	if "--autoplay" in OS.get_cmdline_user_args():
+	var args := OS.get_cmdline_user_args()
+	if "--autoplay" in args or "--ship-test" in args:
 		await get_tree().create_timer(0.5).timeout
-		var img := get_viewport().get_texture().get_image()
-		if img:
-			img.save_png("user://result-%s.png" % RunState.outcome)
-		get_tree().quit(0)
+		var tex := get_viewport().get_texture()
+		if tex:
+			var img := tex.get_image()
+			if img:
+				img.save_png("user://hc-result-%s.png" % RunState.outcome)
+				print("RESULT_CAPTURE: ", RunState.outcome)
+		get_tree().quit(0 if RunState.outcome in ["won", "extracted"] else 1)

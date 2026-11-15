@@ -40,19 +40,22 @@ func _process(delta: float) -> void:
 
 func _begin_biome(idx: int) -> void:
 	RunState.biome_index = idx
-	RunState.biome_name = BIOME_NAMES[idx]
+	RunState.biome_name = BIOME_NAMES[clampi(idx, 0, BIOME_NAMES.size() - 1)]
 	RunState.wave_in_biome = 0
 	_spawned_apex = false
 	EventBus.biome_started.emit(idx, RunState.biome_name)
 	if idx >= 3:
-		_phase = "between_waves"
-		_timer = 1.0
-		_waves_left = 0 # special: apex only
+		_phase = "apex_wait"
+		_waves_left = 0
 		call_deferred("_spawn_apex")
 		return
-	_waves_left = 3 + idx
+	# Ship-test: shorter biomes so we can verify full path quickly
+	if "--ship-test" in OS.get_cmdline_user_args():
+		_waves_left = 1
+	else:
+		_waves_left = 3 + idx
 	_phase = "intro"
-	_timer = 1.0
+	_timer = 0.7
 
 func _spawn_wave() -> void:
 	if _waves_left <= 0:

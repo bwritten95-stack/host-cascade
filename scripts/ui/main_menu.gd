@@ -24,9 +24,10 @@ func _ready() -> void:
 		MetaProgress.banked_essence, MetaProgress.runs, MetaProgress.apex_kills
 	]
 	_spawn_decor()
-	if "--autoplay" in OS.get_cmdline_user_args():
-		await get_tree().create_timer(0.8).timeout
-		await _capture("menu")
+	var args := OS.get_cmdline_user_args()
+	if "--autoplay" in args or "--ship-test" in args:
+		await get_tree().create_timer(0.7).timeout
+		await _capture("hc-menu")
 		get_tree().change_scene_to_file("res://scenes/arena/arena.tscn")
 
 func _spawn_decor() -> void:

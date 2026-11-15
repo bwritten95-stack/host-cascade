@@ -53,6 +53,10 @@ func bump_combo() -> void:
 	mult = 1.0 + float(mini(combo, 20)) * 0.15
 	EventBus.combo_changed.emit(combo, mult)
 	AudioService.play_combo(combo)
+	if combo == 5 or combo == 10 or combo == 15:
+		EventBus.camera_shake.emit(7.0, 0.12)
+		EventBus.floating_text.emit(Vector2(640, 260), "COMBO x%d" % combo, Color(1.0, 0.85, 0.35))
+		EventBus.hitstop.emit(0.05)
 
 func break_combo() -> void:
 	combo = 0
