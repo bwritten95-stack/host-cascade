@@ -27,6 +27,11 @@ func _ready() -> void:
 	EventBus.run_extracted.connect(_on_extracted)
 	EventBus.floating_text.connect(_on_float)
 	EventBus.biome_started.connect(_on_biome)
+	EventBus.essence_gained.connect(func(amount: int, _total: int) -> void:
+		var p := get_tree().get_first_node_in_group("player")
+		if p is Node2D:
+			EventBus.floating_text.emit((p as Node2D).global_position + Vector2(12, -30), "+%d" % amount, Color(0.45, 1.0, 0.7))
+	)
 	_director.request_shop.connect(_open_shop)
 	_director.request_extract_choice.connect(_open_extract)
 	_paint_bg(0)

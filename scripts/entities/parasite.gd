@@ -52,7 +52,10 @@ func _physics_process(delta: float) -> void:
 
 func _process_worm(delta: float) -> void:
 	RunState.in_worm = true
-	RunState.worm_time += delta
+	if RunState.worm_grace > 0.0:
+		RunState.worm_grace = maxf(RunState.worm_grace - delta, 0.0)
+	else:
+		RunState.worm_time += delta
 	EventBus.worm_timer_changed.emit(RunState.worm_time_max - RunState.worm_time, RunState.worm_time_max)
 	if RunState.worm_time >= RunState.worm_time_max:
 		_die()
@@ -100,7 +103,11 @@ func _process_leap(delta: float) -> void:
 	if _leap_t <= 0.0:
 		mode = Mode.WORM
 		EventBus.leap_missed.emit()
-		RunState.break_combo()
+		# Near-miss forgiveness: keep combo if a host was almost in range
+		if _find_possess_target(POSSESS_RANGE * 1.8) == null:
+			RunState.break_combo()
+		else:
+			RunState.grant_worm_grace(0.35)
 
 func _start_leap() -> void:
 	var dir := _aim_dir()
@@ -208,8 +215,21 @@ func _possess(host: Node2D) -> void:
 	EventBus.possessed.emit(host)
 	AudioService.play_possess()
 	EventBus.camera_shake.emit(5.0, 0.1)
-	EventBus.hitstop.emit(0.04)
+	EventBus.hitstop.emit(0.045)
 	EventBus.floating_text.emit(global_position + Vector2(0, -24), def.display_name.to_upper(), def.color)
+	# Possession flash ring
+	var flash := Polygon2D.new()
+	var pts := PackedVector2Array()
+	for a in 20:
+		pts.append(Vector2.from_angle(TAU * float(a) / 20.0) * 28.0)
+	flash.polygon = pts
+	flash.color = Color(def.color.r, def.color.g, def.color.b, 0.55)
+	flash.global_position = global_position
+	get_parent().add_child(flash)
+	var ftw := flash.create_tween()
+	ftw.tween_property(flash, "scale", Vector2(2.2, 2.2), 0.2)
+	ftw.parallel().tween_property(flash, "modulate:a", 0.0, 0.2)
+	ftw.tween_callback(flash.queue_free)
 	host.queue_free()
 
 func _eject(from_input: bool) -> void:
@@ -220,6 +240,7 @@ func _eject(from_input: bool) -> void:
 		_shockwave(pos, 2)
 	mode = Mode.WORM
 	RunState.worm_time = 0.0
+	RunState.grant_worm_grace(0.25)
 	_enter_worm(true)
 	EventBus.ejected.emit(pos)
 	AudioService.play_eject()

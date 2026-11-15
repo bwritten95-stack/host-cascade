@@ -38,7 +38,10 @@ func _process(_d: float) -> void:
 func _on_worm(remaining: float, max_t: float) -> void:
 	_worm.max_value = max_t
 	_worm.value = remaining
-	_worm.modulate = Color(0.4, 1.0, 0.7).lerp(Color(1.0, 0.3, 0.3), 1.0 - clampf(remaining / maxf(max_t, 0.01), 0.0, 1.0))
+	if RunState.worm_grace > 0.0:
+		_worm.modulate = Color(0.55, 0.85, 1.0) # grace = calm blue
+	else:
+		_worm.modulate = Color(0.4, 1.0, 0.7).lerp(Color(1.0, 0.3, 0.3), 1.0 - clampf(remaining / maxf(max_t, 0.01), 0.0, 1.0))
 
 func _flash_banner(t: String) -> void:
 	_banner.text = t

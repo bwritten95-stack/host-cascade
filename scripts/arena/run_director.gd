@@ -49,13 +49,23 @@ func _begin_biome(idx: int) -> void:
 		_waves_left = 0
 		call_deferred("_spawn_apex")
 		return
-	# Ship-test: shorter biomes so we can verify full path quickly
+	# Balanced density: 3 / 3 / 4 waves. Ship-test uses 1 for CI speed.
 	if "--ship-test" in OS.get_cmdline_user_args():
 		_waves_left = 1
 	else:
-		_waves_left = 3 + idx
+		_waves_left = 3 if idx < 2 else 4
+	RunState.grant_worm_grace(1.2)
 	_phase = "intro"
-	_timer = 0.7
+	_timer = 0.55
+	# Teach the loop: a free grunt near the player on first biome start
+	if idx == 0:
+		call_deferred("_spawn_tutorial_host")
+
+func _spawn_tutorial_host() -> void:
+	var h: Node2D = HOST_SCENE.instantiate() as Node2D
+	h.global_position = Vector2(640, 320)
+	_spawn.add_child(h)
+	h.call("setup", "grunt")
 
 func _spawn_wave() -> void:
 	if _waves_left <= 0:
@@ -63,10 +73,15 @@ func _spawn_wave() -> void:
 		return
 	_waves_left -= 1
 	RunState.wave_in_biome += 1
+	RunState.grant_worm_grace(0.45)
 	var table: Array[String] = HostCatalog.biome_table(RunState.biome_index)
-	var count: int = 3 + RunState.wave_in_biome + RunState.biome_index
+	# Density ramp: not too sparse early, not bullet-hell late
+	var count: int = mini(4 + RunState.wave_in_biome + RunState.biome_index, 9)
 	for i in count:
 		var id: String = table[i % table.size()]
+		# Prefer easier first spawns in a wave
+		if i == 0 and RunState.biome_index == 0:
+			id = "grunt"
 		_spawn_host(id, i, count)
 	_phase = "clearwait"
 
@@ -87,11 +102,13 @@ func _spawn_apex() -> void:
 
 func _on_wave_clear() -> void:
 	EventBus.floating_text.emit(Vector2(640, 200), "WAVE CLEAR", Color(0.6, 1.0, 0.8))
+	AudioService.play_ui()
 	if _waves_left <= 0:
 		_biome_cleared()
 	else:
 		_phase = "between_waves"
-		_timer = 1.2
+		_timer = 1.35
+		RunState.grant_worm_grace(0.8)
 
 func _biome_cleared() -> void:
 	EventBus.biome_cleared.emit(RunState.biome_index)

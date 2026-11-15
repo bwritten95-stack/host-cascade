@@ -47,7 +47,7 @@ func save_meta() -> void:
 	cfg.save(PATH)
 
 func worm_bonus() -> float:
-	return 0.5 if "lung" in unlocked else 0.0
+	return 0.6 if "lung" in unlocked else 0.0
 
 func starting_mutations() -> Array[String]:
 	var out: Array[String] = []

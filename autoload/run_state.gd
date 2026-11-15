@@ -17,7 +17,8 @@ var wave_in_biome: int = 0
 var hostiles_alive: int = 0
 
 var worm_time: float = 0.0
-var worm_time_max: float = 2.4
+var worm_time_max: float = 3.8
+var worm_grace: float = 0.0 # seconds where worm timer does not tick
 var in_worm: bool = true
 var possessed_tier: int = 0
 
@@ -37,10 +38,15 @@ func reset() -> void:
 	wave_in_biome = 0
 	hostiles_alive = 0
 	worm_time = 0.0
-	worm_time_max = 3.2 + MetaProgress.worm_bonus()
+	# Forgiving enough to leap, tight enough to stay scary
+	worm_time_max = 3.8 + MetaProgress.worm_bonus()
+	worm_grace = 1.4
 	in_worm = true
 	possessed_tier = 0
 	mutations = MetaProgress.starting_mutations()
+
+func grant_worm_grace(seconds: float) -> void:
+	worm_grace = maxf(worm_grace, seconds)
 
 func add_essence(base: int) -> void:
 	var gain := int(round(float(base) * mult))
