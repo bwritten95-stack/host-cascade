@@ -81,6 +81,10 @@ func _process_host(delta: float) -> void:
 		_host_attack()
 	if Input.is_action_just_pressed("eject") or Input.is_action_just_pressed("leap"):
 		_eject(true)
+		return
+	if host_def == null:
+		_enter_worm(true)
+		return
 	# Hurt flash scale
 	scale = scale.lerp(Vector2.ONE * (1.0 + float(host_def.tier) * 0.08), 0.2)
 
