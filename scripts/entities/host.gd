@@ -87,13 +87,23 @@ func _ai(_delta: float) -> void:
 				velocity = to_p.normalized() * def.speed * 2.8
 				_cd = def.attack_cooldown
 				_try_melee()
-		"slam", "apex":
+		"slam":
 			velocity = to_p.normalized() * def.speed
 			if dist < 70.0 and _cd <= 0.0:
 				_try_melee()
 				_cd = def.attack_cooldown
-				if def.attack_kind == "apex" and randf() < 0.4:
+		"apex":
+			velocity = to_p.normalized() * def.speed * (1.15 if hp < def.max_hp / 2 else 1.0)
+			if dist < 80.0 and _cd <= 0.0:
+				_try_melee()
+				_cd = def.attack_cooldown * 0.7
+			elif _cd <= 0.0:
+				_spit()
+				if randf() < 0.35:
 					_spit()
+				_cd = def.attack_cooldown
+				if hp < def.max_hp / 2 and randf() < 0.25:
+					_summon_guard()
 		_:
 			velocity = to_p.normalized() * def.speed
 			if dist < 46.0 and _cd <= 0.0:
@@ -116,6 +126,14 @@ func _spit() -> void:
 	var dir: Vector2 = (_player.global_position - global_position).normalized()
 	if bolt.has_method("launch"):
 		bolt.call("launch", dir * 280.0, def.damage, false)
+
+func _summon_guard() -> void:
+	var scene: PackedScene = preload("res://scenes/entities/host.tscn")
+	var guard: Node2D = scene.instantiate() as Node2D
+	guard.global_position = global_position + Vector2.RIGHT.rotated(randf() * TAU) * 70.0
+	get_parent().add_child(guard)
+	guard.call("setup", "grunt")
+	EventBus.floating_text.emit(global_position, "SPAWN", Color(1.0, 0.4, 0.6))
 
 func take_damage(amount: int, by_player: bool = false) -> void:
 	if not alive or possessed:
